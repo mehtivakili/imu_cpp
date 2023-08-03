@@ -1,0 +1,29 @@
+clc
+clear
+instrfind;
+cd C:\IMU_BMI088\Calibration\FirstTry
+delete(instrfind({'Port'},{'COM4'}));
+sObject = serial('COM4','BaudRate',115200,'Timeout',30,'Terminator','LF');
+sObject.InputBufferSize = 4096;
+fopen(sObject);
+tStart = tic;
+buffer=zeros(7,1);
+periode=10;
+data = [];
+while toc(tStart) < periode
+
+    % Read the bytes from the serial port into a buffer
+    buffer = fread(sObject,7,'float');
+    buffer(7)=toc(tStart);
+    buffer = sprintf("%e", buffer);
+   
+     % Append the new data to the existing data
+    data = [data, buffer];
+    
+end
+da = data'
+d = da(:,2:4)
+%save("log.mat",'d')
+
+% Save the matrix data to a text file
+dlmwrite('matrix_data.txt', d,'delimiter', '\t');
