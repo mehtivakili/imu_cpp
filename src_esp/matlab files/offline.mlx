@@ -1,0 +1,58 @@
+clc
+clear
+instrfind;
+cd C:\IMU_BMI088\Calibration\FirstTry
+delete(instrfind({'Port'},{'COM5'}));
+sObject = serial('COM5','BaudRate',115200,'Timeout',30,'Terminator','LF');
+sObject.InputBufferSize = 4096;
+fopen(sObject);
+tStart = tic;
+buffer=zeros(7,1);
+periode=10;
+data = [];
+while toc(tStart) < periode
+    
+    % Read the bytes from the serial port into a buffer
+    buffer = fread(sObject,6,'float');
+    buffer(7)=toc(tStart);
+    
+   
+     % Append the new data to the existing data
+    data = [data, buffer];
+    
+end
+
+delete(instrfind({'Port'},{'COM5'}));
+hold on
+for i=1:6
+plot(data(7,:),data(i,:))
+legend('Accel X', 'Accel Y', 'Accel Z', 'Gyro X', 'Gyro Y', 'Gyro Z')
+end
+hold off
+[GyroData,AccelData]=Seperator(data)
+save('IMU0x2Dalpha');
+
+%fusionfilt = insfilterAsync('ReferenceLocation', refloc);
+
+fuse = imufilter('SampleRate',200);
+%[orientation, angularVelocity] = imfuse(AccelData(:,2:4),GyroData(:,2:4))
+
+q = fuse(AccelData(:,2:4),GyroData(:,2:4));
+
+time = AccelData(:,1);
+
+plot(time,eulerd(q,'ZYX','frame'))
+title('Orientation Estimate')
+legend('Z-axis', 'Y-axis', 'X-axis')
+xlabel('Time (s)')
+ylabel('Rotation (degrees)')
+
+function [GyroData,AccelData]=Seperator(data)
+timestamp=data(7,:);
+AccelData(:,1)=timestamp;
+AccelData(:,2:4)=data(1:3,:)';
+GyroData(:,1)=timestamp;
+GyroData(:,2:4)=data(4:6,:)';
+end
+
+
