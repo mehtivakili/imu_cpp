@@ -105,6 +105,7 @@ with open("acc_u1.txt", "r") as acc_file, open("gyro_u1.txt", "r") as gyro_file:
         gyro_line = gyro_line.strip().split("\t")
 
         # convert the strings to floats and skip the first column
+        time = [float(x) for x in acc_line[0]]
         acce = [float(x) for x in acc_line[1:]]
         gyro = [float(x) for x in gyro_line[1:]]
 
@@ -127,8 +128,8 @@ with open("acc_calibrated.txt", "w") as acc_calib_file, open("gyro_calibrated.tx
     # loop through the calibrated data
     for acce_calib, gyro_calib in zip(acce_calib_list, gyro_calib_list):
         # format the data as a string with tabs
-        acce_calib_str = "\t".join([str(x) for x in acce_calib]) + "\n"
-        gyro_calib_str = "\t".join([str(x) for x in gyro_calib]) + "\n"
+        acce_calib_str = time+"\t".join([str(x) for x in acce_calib]) + "\n"
+        gyro_calib_str = time+"\t".join([str(x) for x in gyro_calib]) + "\n"
 
         # write the data to the files
         acc_calib_file.write(acce_calib_str)
