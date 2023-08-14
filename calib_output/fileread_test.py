@@ -92,11 +92,47 @@ gyro_bias = [4.53855,
 calib.set_acce_params(Ta, Ka, acce_bias)
 calib.set_gyro_params(Tg, Kg, gyro_bias)
 
-# create empty lists to store the calibrated data
+# create empty lists to store the calibrated data and time values
 acce_calib_list = []
 gyro_calib_list = []
+acce_time_list = []
+gyro_time_list = []
 
 # open the files for reading the data
+with open("acc.txt", "r") as acc_file, open("gyro.txt", "r") as gyro_file:
+    # loop through the lines of the files
+    for acc_line, gyro_line in zip(acc_file, gyro_file):
+        # split the lines by tabs
+        acc_line = acc_line.strip().split("\t")
+        gyro_line = gyro_line.strip().split("\t")
+
+        # get the time values from the first column
+        acce_time = float(acc_line[0])
+        gyro_time = float(gyro_line[0])
+
+        # append the time values to the lists
+        acce_time_list.append(acce_time)
+        gyro_time_list.append(gyro_time)
+
+        # convert the strings to floats and skip the first column
+        acce = [float(x) for x in acc_line[1:]]
+        gyro = [float(x) for x in gyro_line[1:]]
+
+        # calibrate the data
+        successed, acce_calib, gyro_calib = calib.imu_calib(acce, gyro)
+
+        # check if calibration is successful
+        if successed:
+            print("calibration successed!")
+        else:
+            print("error, please check the input parameter!")
+            break
+
+        # append the calibrated data to the lists
+        acce_calib_list.append(acce_calib)
+        gyro_calib_list.append(gyro_calib)
+
+## open the files for reading the data
 with open("acc_u1.txt", "r") as acc_file, open("gyro_u1.txt", "r") as gyro_file:
     # loop through the lines of the files
     for acc_line, gyro_line in zip(acc_file, gyro_file):
@@ -104,8 +140,15 @@ with open("acc_u1.txt", "r") as acc_file, open("gyro_u1.txt", "r") as gyro_file:
         acc_line = acc_line.strip().split("\t")
         gyro_line = gyro_line.strip().split("\t")
 
+        # get the time values from the first column
+        acce_time = float(acc_line[0])
+        gyro_time = float(gyro_line[0])
+
+        # append the time values to the lists
+        acce_time_list.append(acce_time)
+        gyro_time_list.append(gyro_time)
+
         # convert the strings to floats and skip the first column
-        time = [float(x) for x in acc_line[0]]
         acce = [float(x) for x in acc_line[1:]]
         gyro = [float(x) for x in gyro_line[1:]]
 
@@ -125,11 +168,11 @@ with open("acc_u1.txt", "r") as acc_file, open("gyro_u1.txt", "r") as gyro_file:
 
 # open the files for writing the calibrated data
 with open("acc_calibrated.txt", "w") as acc_calib_file, open("gyro_calibrated.txt", "w") as gyro_calib_file:
-    # loop through the calibrated data
-    for acce_calib, gyro_calib in zip(acce_calib_list, gyro_calib_list):
-        # format the data as a string with tabs
-        acce_calib_str = time+"\t".join([str(x) for x in acce_calib]) + "\n"
-        gyro_calib_str = time+"\t".join([str(x) for x in gyro_calib]) + "\n"
+    # loop through the calibrated data and time values
+    for acce_calib, gyro_calib, acce_time, gyro_time in zip(acce_calib_list, gyro_calib_list, acce_time_list, gyro_time_list):
+        # format the data as a string with tabs and include the time values
+        acce_calib_str = "{:.5e}\t{:.5e}\t{:.5e}\t{:.5e}\n".format(acce_time, acce_calib[0], acce_calib[1], acce_calib[2])
+        gyro_calib_str = "{:.5e}\t{:.5e}\t{:.5e}\t{:.5e}\n".format(gyro_time, gyro_calib[0], gyro_calib[1], gyro_calib[2])
 
         # write the data to the files
         acc_calib_file.write(acce_calib_str)
