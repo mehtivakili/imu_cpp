@@ -1,26 +1,5 @@
-/*
-* Brian R Taylor
-* brian.taylor@bolderflight.com
-* 
-* Copyright (c) 2018 Bolder Flight Systems
-* 
-* Permission is hereby granted, free of charge, to any person obtaining a copy of this software 
-* and associated documentation files (the "Software"), to deal in the Software without restriction, 
-* including without limitation the rights to use, copy, modify, merge, publish, distribute, 
-* sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is 
-* furnished to do so, subject to the following conditions:
-* 
-* The above copyright notice and this permission notice shall be included in all copies or 
-* substantial portions of the Software.
-* 
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING 
-* BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND 
-* NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, 
-* DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, 
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-*/
-
 #include "BMI088.h"
+#include "Arduino.h"
 
 /* accel object */
 Bmi088Accel accel(SPI,32);
@@ -30,6 +9,16 @@ Bmi088Gyro gyro(SPI,25);
     int16_t accelX_raw, accelY_raw, accelZ_raw;
     int16_t gyroX_raw, gyroY_raw, gyroZ_raw;
 // Bmi088 bmi(SPI,32,25);
+
+
+// Calibration parameters
+float Ta[3][3] = {{1, -0.00546066, 0.00101399}, {0, 1, 0.00141895}, {0, 0, 1}};
+float Ka[3][3] = {{0.00358347, 0, 0}, {0, 0.00358133, 0}, {0, 0, 0.00359205}};
+float acce_bias[3] = {-8.28051, -4.6756, -0.870355};
+float Tg[3][3] = {{1, -0.00614889, -0.000546488}, {0.0102258, 1, 0.000838491}, {0.00412113, 0.0020154, 1}};
+float Kg[3][3] = {{0.000531972, 0, 0}, {0, 0.000531541, 0}, {0, 0, 0.000531}};
+float gyro_bias[3] = {4.53855, 4.001, -1.9779};
+
 
 double Tio = 0.000;
 double myArray[7];
@@ -92,53 +81,37 @@ void loop()
   myArray[5] = gyroY_raw;
   myArray[6] = gyroZ_raw;
  
-          // Serial.print(myArray[0]);
-          // Serial.print("\t");
-          // Serial.print(myArray[1]);
-          // Serial.print("\t");
-          // Serial.print(myArray[2]);
-          // Serial.print("\t");
-          // Serial.print(myArray[3]);
-          // Serial.print("\t");
-          // Serial.print(myArray[4]);
-          // Serial.print("\t");
-          // Serial.print(myArray[5]);
-          // Serial.print("\t");
-          // Serial.print(myArray[6]);
-          // Serial.print("\n");
+ // Apply calibration to raw data
+    float acce_calibrated[3];
+    float gyro_calibrated[3];
+    
+    // for (int i = 0; i < 3; i++) {
+    //     acce_calibrated[i] = Ka[i][i] * (Ta[i][i] * (accelX_raw + acce_bias[i]) + Ta[i][(i+1)%3] * (accelY_raw + acce_bias[(i+1)%3]) + Ta[i][(i+2)%3] * (accelZ_raw + acce_bias[(i+2)%3]));
+    //     gyro_calibrated[i] = Kg[i][i] * (Tg[i][i] * (gyroX_raw + gyro_bias[i]) + Tg[i][(i+1)%3] * (gyroY_raw + gyro_bias[(i+1)%3]) + Tg[i][(i+2)%3] * (gyroZ_raw + gyro_bias[(i+2)%3]));
+    // }
+
+    acce_calibrated[0] = ((Ka[0][0]*Ta[0][0])+(Ka[0][1]*Ta[1][1])+(Ka[0][2]*Ta[2][2]))*(myArray[1]-acce_bias[0]);
+    acce_calibrated[1] = ((Ka[1][1]*Ta[1][1])+(Ka[1][2]*Ta[2][2]))*(myArray[2]-acce_bias[1]);
+    acce_calibrated[2] = ((Ka[2][2]*Ta[2][2]))*(myArray[3]-acce_bias[2]);
+    gyro_calibrated[0] = ((Kg[0][0]*Tg[0][0])+(Kg[0][1]*Tg[1][1])+(Kg[0][2]*Tg[2][2]))*(myArray[4]-gyro_bias[0]);
+    gyro_calibrated[1] = ((Kg[1][0]*Tg[1][0])+(Kg[1][1]*Tg[1][1])+(Kg[1][2]*Tg[2][2]))*(myArray[5]-gyro_bias[1]);
+    gyro_calibrated[2] = ((Kg[2][0]*Tg[2][0])+(Kg[2][1]*Tg[2][1])+(Kg[2][2]*Tg[2][2]))*(myArray[6]-gyro_bias[2]);
+
+    // Print calibrated data
+    printf("Calibrated Accelerometer (X,Y,Z): %f,%f,%f\n",acce_calibrated[0],acce_calibrated[1],acce_calibrated[2]);
+    printf("Calibrated Gyroscope (X,Y,Z): %f,%f,%f\n",gyro_calibrated[0],gyro_calibrated[1],gyro_calibrated[2]);
 
 
   size_t size = sizeof(myArray);
 
-  for(int i = 0; i < 7 ; i++){
-    binaryFloat hi;
-    hi.floatingPoint = myArray[i];
-    Serial.write(hi.binary,4);
-  }
+  // for(int i = 0; i < 7 ; i++){
+  //   binaryFloat hi;
+  //   hi.floatingPoint = myArray[i];
+  //   Serial.write(hi.binary,4);
+  // }
   
-  // binaryFloat hi;
-  // hi.floatingPoint = -11.7;
-  // Serial.write(hi.binary,4);
-          // Serial.print(Tio);
-          // Serial.print("\t");
-          // // Serial.print("\t");
-          // Serial.print((int) accel.getAccelX_mss());
-          // Serial.print("\t");
-          // Serial.print((int) accel.getAccelY_mss());
-          // Serial.print("\t");
-          // Serial.print((int) accel.getAccelZ_mss());
-          // Serial.print("\t");
-          // Serial.print(gyro.getGyroX_rads());
-          // Serial.print("\t");
-          // Serial.print(gyro.getGyroY_rads());
-          // Serial.print("\t");
-          // Serial.print(gyro.getGyroZ_rads());
-          // Serial.print("\t");
-          // Serial.print(accel.getTemperature_C());
-          // Serial.print("\n");
-  /* delay to help with printing */
-  delay(5);
-  Tio += 0.005;
-}
 
-// sudo chown mehdi:dialout /dev/ttyUSB0
+  /* delay to help with printing */
+  delay(50);
+  Tio += 0.05;
+}
