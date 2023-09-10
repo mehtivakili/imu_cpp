@@ -1,21 +1,27 @@
 import serial 
 import struct
-ser = serial.Serial ('COM4', 115200, timeout=1)
+
+ser = serial.Serial ('COM5', 115200, timeout=1)
+
 data_list = [] # create an empty list to store the data
 write_start = True # create a boolean variable to indicate when the writing and printing should start
 first_value = None # create a variable to store the first number[0] value
 T0 = 5 # set the initial time interval for turning the imu
 T1 = 6 # set the subsequent time intervals for turning the imu
-Total_turn = 15
+Total_turn = 1
 T = T0 + T1*Total_turn
 turn_count = 0 # create a variable to count the number of turns
-data = ser.read(28) # read 28 bytes from the serial port
-numbers = struct.unpack('<7f',data) # unpack the data into a list of 7 floats
+
+# modify the code to read 40 bytes instead of 28 bytes from the serial port
+data = ser.read(40) # read 40 bytes from the serial port
+
+# modify the code to unpack the data into a list of 10 floats instead of 7 floats
+numbers = struct.unpack('<10f',data) # unpack the data into a list of 10 floats
 
 print(numbers)
 while True: # start a loop
-    data = ser.read(28) # read 28 bytes from the serial port
-    numbers = struct.unpack('<7f',data) # unpack the data into a list of 7 floats
+    data = ser.read(40) # read 40 bytes from the serial port
+    numbers = struct.unpack('<10f',data) # unpack the data into a list of 10 floats
     if numbers[0] == 0: # check if the first number is zero
         write_start = True # set the write_start variable to True
     if write_start: # check if the writing and printing should start
@@ -34,21 +40,16 @@ while True: # start a loop
             print(f"n'th Turn:{turn_count}") # print a message to turn the imu
     if numbers[0] > T: # check if the first number is greater than 20
         break # exit the loop
-# print(data_list) # print the final data list
 
-# create and open two text files named acc and gyro in write mode
-acc_file = open("acc_u.txt", "w")
-gyro_file = open("gyro_u.txt", "w")
+# create and open one text file named imu in write mode
+imu_file = open("imu_u.txt", "w")
 
-# loop through the data list and write to the files
+# loop through the data list and write to the file
 for numbers in data_list:
     # format each number as a string with scientific notation and 5 decimal places
     numbers = [format(n, ".5e") for n in numbers]
-    # write the first parameter in the same line as the second to fourth parameters in the acc file, separated by tabs
-    acc_file.write(numbers[0] + "\t" + "\t".join(numbers[1:4]) + "\n")
-    # write the first parameter in the same line as the fifth to seventh parameters in the gyro file, separated by tabs
-    gyro_file.write(numbers[0] + "\t" + "\t".join(numbers[4:7]) + "\n")
+    # write all ten parameters in one line in the imu file, separated by tabs
+    imu_file.write("\t".join(numbers) + "\n")
 
-# close the files
-acc_file.close()
-gyro_file.close()
+# close the file
+imu_file.close()
